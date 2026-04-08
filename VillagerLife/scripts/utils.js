@@ -1,13 +1,19 @@
+// utils.js 수정 예시
 export function findNearestBlock(entity, blockType, radius) {
-    const { x, y, z } = entity.location;
+    // 주민의 위치를 정수로 변환하여 블록 좌표계와 일치시킴
+    const x = Math.floor(entity.location.x);
+    const y = Math.floor(entity.location.y);
+    const z = Math.floor(entity.location.z);
     
-    // 주변 반경을 탐색하며 특정 블록(상자)을 찾습니다.
     for (let dx = -radius; dx <= radius; dx++) {
         for (let dy = -radius; dy <= radius; dy++) {
             for (let dz = -radius; dz <= radius; dz++) {
-                const block = entity.dimension.getBlock({ x: x + dx, y: y + dy, z: z + dz });
+                const targetPos = { x: x + dx, y: y + dy, z: z + dz };
+                const block = entity.dimension.getBlock(targetPos);
+                
+                // 블록이 존재하고 typeId가 일치하는지 확인
                 if (block && block.typeId === blockType) {
-                    return { x: x + dx, y: y + dy, z: z + dz };
+                    return targetPos;
                 }
             }
         }
