@@ -38,74 +38,93 @@ system.runInterval(() => {
                 const healthComp = villager.getComponent("minecraft:health");
                 if (!healthComp) continue;
 
+                // --- [우선순위 0] 보안(생존) ---
+                // 공격받거나 주변에 좀비가 있으면 모든 행동 중단
                 const isUnderAttack = updateSecurity(villager);
-                const currentHunger = updateHunger(villager);
-
                 if (isUnderAttack) {
-                    world.sendMessage(`§4[SECURITY] 주민(${vId}) 위협 감지 중...§r`);
+                    world.sendMessage(`§4[PRIORITY 0] 주민(${vId}) 보안 로직 작동 중...§r`);
                     continue; 
                 }
 
+                // 대화 중이라면 로직 건너뜀
                 if (isVillagerTalking(villager.id)) continue;
 
+                // --- [우선순위 1] 특수 명령(심시티 모드) ---
+                // UI를 통해 설정된 모드 확인 (IDLE, COLLECTING, REPAIRING)
+                const mode = villager.getDynamicProperty("village:mode") || "IDLE";
+                if (mode !== "IDLE") {
+                    world.sendMessage(`§a[PRIORITY 1] 주민(${vId}) 현재 업무 수행 중: ${mode}§r`);
+                    // 여기서 각 모드에 맞는 세부 함수를 호출할 수 있습니다.
+                    continue; 
+                }
+
+                // --- [우선순위 2] 생존(허기) ---
+                const currentHunger = updateHunger(villager);
+                if (pickupFoodOnGround(villager, healthComp)) {
+                    world.sendMessage(`§b[PRIORITY 2] 주민(${vId}) 바닥 음식 줍기 완료§r`);
+                    continue; 
+                }
+                if (eatFromInventory(villager, currentHunger, healthComp)) {
+                    world.sendMessage(`§b[PRIORITY 2] 주민(${vId}) 인벤토리 식사 완료§r`);
+                    continue; 
+                }
+
+                // --- [우선순위 3] 환경 반응(날씨) ---
                 const weatherMsg = getWeatherMessage(villager);
                 if (weatherMsg && Math.random() < 0.4) {
                     showSpeechBubble(villager, weatherMsg, 60);
-                    world.sendMessage(`§3[WEATHER] 주민(${vId}) 날씨 반응: ${weatherMsg}§r`);
+                    world.sendMessage(`§3[PRIORITY 3] 주민(${vId}) 날씨 반응: ${weatherMsg}§r`);
                     continue;
                 }
 
-                if (pickupFoodOnGround(villager, healthComp)) continue; 
-                if (eatFromInventory(villager, currentHunger, healthComp)) continue; 
-
+                // --- [우선순위 4] 일반 일상 ---
                 if (Math.random() < 0.1) { 
                     let message = getRoutineMessage(villager);
                     showSpeechBubble(villager, message, 60);
-                    world.sendMessage(`§e[ROUTINE] 주민(${vId}) 일상 대사: ${message}§r`);
+                    world.sendMessage(`§e[PRIORITY 4] 주민(${vId}) 일상 대사: ${message}§r`);
                 }
+
             } catch (innerErr) {
                 console.warn(`주민(${vId}) 루프 오류: ${innerErr}`);
             }
         }
     } catch (err) {
-        world.sendMessage(`§4[SYSTEM CRASH] 메인 루프 오류: ${err}§r`);
+        world.sendMessage(`§4[SYSTEM CRASH] 메인 루프 치명적 오류: ${err}§r`);
     }
 }, 30);
 
 // ==========================================
-// --- 인터페이스 교체 (거래창 차단 핵심) ---
+// --- 인터페이스 가로채기 (UI) ---
 // ==========================================
 
-// [핵심 수정] 상호작용 이벤트를 사전에 가로채서 취소함
 world.beforeEvents.playerInteractWithEntity.subscribe((event) => {
     const { player, target, itemStack } = event;
 
-    // 주민을 클릭했고, 종이(명령서)를 들고 있다면
     if (target.typeId === "minecraft:villager_v2" && itemStack?.typeId === "minecraft:paper") {
-        // 1. 거래창이 뜨지 않도록 이벤트 취소
+        // 거래창 차단
         event.cancel = true;
 
-        // 2. UI 호출 (beforeEvents 내부에서 직접 호출 불가하므로 system.run 사용)
+        // UI 오픈
         system.run(() => {
             openVillagerMenu(player, target);
         });
         
-        world.sendMessage(`§b[UI] 주민(${target.id.slice(-4)}) 관리 인터페이스 강제 오픈 (거래창 차단됨)§r`);
+        world.sendMessage(`§b[UI] 주민(${target.id.slice(-4)}) 관리 메뉴 호출됨.§r`);
     }
 });
 
 // ==========================================
-// --- 기타 이벤트 리스너 ---
+// --- 이벤트 모니터링 ---
 // ==========================================
 
 world.afterEvents.entityHurt.subscribe((event) => {
     try {
         const victim = event.hurtEntity; 
         if (victim?.isValid() && victim.typeId === "minecraft:villager_v2") {
-            const cause = event.damageSource?.cause ? String(event.damageSource.cause).toLowerCase() : "unknown";
-            let msg = cause.includes("entity") ? "§4으악! 몹이다!§r" : "§c아야! 왜 때려!§r"; 
+            const cause = event.damageSource?.cause || "unknown";
+            let msg = cause.includes("entity") ? "§4으악! 누가 날 공격해!§r" : "§c아야! 아파!§r"; 
             showSpeechBubble(victim, msg, 40, true); 
-            world.sendMessage(`§c[EVENT] 주민(${victim.id.slice(-4)}) 피격! 원인: ${cause}§r`);
+            world.sendMessage(`§c[EVENT] 주민(${victim.id.slice(-4)}) 피격됨 (원인: ${cause})§r`);
         }
     } catch (err) {}
 });
@@ -114,7 +133,7 @@ world.afterEvents.entityRemove.subscribe((event) => {
     try {
         if (event.typeId === "minecraft:villager_v2") {
             removeVillagerData(event.removedEntityId); 
-            world.sendMessage(`§7[EVENT] 주민 데이터 제거됨 (ID: ${event.removedEntityId.slice(-4)})§r`);
+            world.sendMessage(`§7[EVENT] 주민 데이터 정리됨 (ID: ${event.removedEntityId.slice(-4)})§r`);
         }
     } catch (err) {}
 });
