@@ -1,0 +1,26 @@
+{
+  "format_version": 2,
+  "header": {
+    "description": "내 첫 번째 마크 모드!",
+    "name": "My First Addon",
+    "uuid": "4c0ddf68-a46e-48e3-8d75-21d512423cb5",
+    "version": [1, 0, 0],
+    "min_engine_version": [1, 20, 0]
+  },
+  "modules": [
+    {
+      "description": "스크립트 모듈",
+      "type": "script",
+      "language": "javascript",
+      "uuid": "5920b984-4ec4-467b-a92d-9940d55db126",
+      "version": [1, 0, 0],
+      "entry": "scripts/main.js"
+    }
+  ],
+  "dependencies": [
+    {
+      "module_name": "@minecraft/server",
+      "version": "1.10.0"
+    }
+  ]
+}
