@@ -3,23 +3,37 @@ import { system } from "@minecraft/server";
 // 주민들이 할 다양한 대사 리스트
 const dialogs = [
     "§e안녕? 오늘 마을 날씨가 참 좋네!§r",
-    "§a에메랄드 좀 있어? 거래하자!§r",
-    "§b요즘 농사일이 너무 피곤해...§r",
-    "§d우리 마을에 온 걸 환영해!§r",
-    "§c배고파... 빵 좀 주라!§r"
+    // ... 기존 대사 유지
 ];
 
-// chatManager.js 수정본
-export function showSpeechBubble(villager, message, durationInTicks = 60) {
-    if (villager.hasTag("isTalking")) return;
+// 주민 ID별로 현재 작동 중인 타이머를 저장할 Map
+const activeTimeouts = new Map(); 
 
-    villager.nameTag = `§e${message}§r`; // 매개변수로 받은 메시지 출력
-    villager.addTag("isTalking");
+export function showSpeechBubble(villager, message, durationInTicks = 60, force = false) {
+    const id = villager.id;
 
-    system.runTimeout(() => {
+    if (!force && villager.hasTag("isTalking")) return;
+
+    // 핵심 수정: force로 강제 덮어쓰기 시, 기존에 돌고 있던 말풍선 끄기 타이머를 강제 취소
+    if (activeTimeouts.has(id)) {
+        system.clearRun(activeTimeouts.get(id));
+        activeTimeouts.delete(id);
+    }
+
+    villager.nameTag = `§e${message}§r`; 
+    
+    if (!villager.hasTag("isTalking")) {
+        villager.addTag("isTalking");
+    }
+
+    const timeoutId = system.runTimeout(() => {
         if (villager.isValid()) {
             villager.nameTag = "";
             villager.removeTag("isTalking");
         }
+        activeTimeouts.delete(id); // 타이머 종료 시 Map에서도 제거
     }, durationInTicks);
+
+    // 새로운 타이머 등록
+    activeTimeouts.set(id, timeoutId);
 }
