@@ -1,0 +1,18 @@
+{
+  "format_version": 2,
+  "header": {
+    "description": "VillagerLife Resources",
+    "name": "VillagerLife RP",
+    "uuid": "f42822cc-9dff-42bf-a3f8-1908c277b78f", 
+    "version": [1, 0, 1],
+    "min_engine_version": [1, 20, 0]
+  },
+  "modules": [
+    {
+      "description": "VillagerLife Resource Module",
+      "type": "resources",
+      "uuid": "2a4e62a5-59ca-4e54-a87a-bcfa6aa47ea5",
+      "version": [1, 0, 1]
+    }
+  ]
+}
