@@ -12,18 +12,14 @@
       "minecraft:health": { "value": 30, "max": 30 },
       "minecraft:collision_box": { "width": 0.6, "height": 1.95 },
       "minecraft:physics": { "has_gravity": true, "has_collision": true },
-      "minecraft:nameable": {},
-      "minecraft:equippable": { "slots": [ { "slot": "slot.weapon.mainhand" } ] },
       "minecraft:movement": { "value": 0.3 },
       "minecraft:movement.basic": {},
       "minecraft:navigation.walk": { 
         "can_path_over_water": true, 
-        "avoid_damage_blocks": true,
         "can_walk": true 
       },
       "minecraft:behavior.nearest_attackable_target": {
         "priority": 1,
-        "must_see": true,
         "entity_types": [
           { "filters": { "test": "is_family", "subject": "other", "value": "monster" }, "max_dist": 16 }
         ]
@@ -34,8 +30,7 @@
         "track_target": true 
       },
       "minecraft:attack": { "damage": 6 },
-      "minecraft:behavior.random_stroll": { "priority": 3, "speed_multiplier": 1.0 },
-      "minecraft:behavior.look_at_player": { "priority": 4, "look_distance": 6.0, "probability": 0.02 }
+      "minecraft:behavior.random_stroll": { "priority": 3, "speed_multiplier": 1.0 }
     }
   }
 }
